@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ministry of Transport - OT Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .holiday {
+            background-color: #fef2f2;
+        }
+        
+        .weekend {
+            background-color: #f0f9ff;
+        }
+        
+        .working-day {
+            background-color: #f0fdf4;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        }
+        
+        .gradient-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        
+        .gradient-btn:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+        
+        .error-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .error-btn:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold">Ministry of Transport</h1>
+                        <p class="text-blue-100">Overtime Calculation System</p>
+                    </div>
+                    <div class="hidden md:block">
+                        <img src="https://www.gov.lk/images/logo.png" alt="Government Logo" class="h-16">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Salary Input Section -->
+            <section class="bg-white rounded-lg shadow-md p-6 mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Basic Salary Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="basicSalary" class="block text-sm font-medium text-gray-700 mb-1">Basic Salary (LKR)</label>
+                        <input type="number" id="basicSalary" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your basic salary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">OT Rate (LKR/hour)</label>
+                        <div class="px-4 py-2 bg-gray-100 rounded-md">
+                            <span id="otRateDisplay" class="font-medium">0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">* OT Rate is calculated as Basic Salary / 240</p>
+                </div>
+            </section>
+
+            <!-- Calendar Controls -->
+            <section class="bg-white rounded-lg shadow-md p-6 mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Select Month & Year</h2>
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div>
+                        <label for="yearSelect" class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                        <select id="yearSelect" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="monthSelect" class="block text-sm font-medium text-gray-700 mb-1">Month</label>
+                        <select id="monthSelect" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="0">January</option>
+                            <option value="1">February</option>
+                            <option value="2">March</option>
+                            <option value="3">April</option>
+                            <option value="4">May</option>
+                            <option value="5">June</option>
+                            <option value="6">July</option>
+                            <option value="7">August</option>
+                            <option value="8">September</option>
+                            <option value="9">October</option>
+                            <option value="10">November</option>
+                            <option value="11">December</option>
+                        </select>
+                    </div>
+                    <div class="ml-auto">
+                        <button id="generateCalendar" class="gradient-btn text-white px-6 py-2 rounded-md font-medium hover:shadow-md transition-all">
+                            Generate Calendar
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar Display -->
+            <section id="calendarSection" class="bg-white rounded-lg shadow-md p-6 mb-8 fade-in hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Attendance Calendar</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">In Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Out Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OT Hours</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Calendar rows will be generated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="bg-white rounded-lg shadow-md p-6 mb-8 fade-in hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">OT Calculation Results</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-blue-800 mb-1">Total OT Hours</h3>
+                        <p class="text-2xl font-bold text-blue-600" id="totalOtHours">0.00</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-green-800 mb-1">OT Rate</h3>
+                        <p class="text-2xl font-bold text-green-600" id="finalOtRate">0.00</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-purple-800 mb-1">Total OT Payment</h3>
+                        <p class="text-2xl font-bold text-purple-600" id="totalOtPayment">0.00</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <button id="printResults" class="gradient-btn text-white px-6 py-2 rounded-md font-medium hover:shadow-md transition-all">
+                        <i class="fas fa-print mr-2"></i> Print Results
+                    </button>
+                    <button id="downloadPdf" class="gradient-btn text-white px-6 py-2 rounded-md font-medium hover:shadow-md transition-all">
+                        <i class="fas fa-file-pdf mr-2"></i> Download PDF
+                    </button>
+                    <button id="resetAll" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-md font-medium hover:bg-gray-300 hover:shadow-md transition-all">
+                        <i class="fas fa-redo mr-2"></i> Reset All
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="gradient-bg text-white py-6">
+            <div class="container mx-auto px-4 text-center">
+                <p>&copy; 2023 Ministry of Transport, Sri Lanka. All rights reserved.</p>
+                <p class="text-blue-100 mt-2">This system is for official use only.</p>
+            </div>
+        </footer>
+
+        <!-- Error Modal -->
+        <div id="errorModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+            <div class="modal-overlay absolute inset-0"></div>
+            <div class="bg-white rounded-lg shadow-xl z-50 w-full max-w-md mx-4 fade-in">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-red-600" id="errorTitle">Error</h3>
+                        <button id="closeErrorModal" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-700 mb-6" id="errorMessage">An error occurred.</p>
+                    <div class="flex justify-end">
+                        <button id="errorModalOk" class="error-btn text-white px-4 py-2 rounded-md font-medium">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Public holidays data
+        const publicHolidays = {
+            "2025": [
+                "2025-01-13", "2025-01-14", "2025-02-04", "2025-02-12", "2025-02-26",
+                "2025-03-13", "2025-03-31", "2025-04-12", "2025-04-13", "2025-04-14",
+                "2025-04-18", "2025-05-01", "2025-05-12", "2025-05-13", "2025-06-07",
+                "2025-06-10", "2025-07-10", "2025-08-08", "2025-09-05", "2025-09-07",
+                "2025-10-06", "2025-10-20", "2025-11-05", "2025-12-04", "2025-12-25"
+            ],
+            "2026": [
+                "2026-01-03", "2026-01-15", "2026-02-01", "2026-02-04", "2026-02-15",
+                "2026-03-02", "2026-03-21", "2026-04-01", "2026-04-03", "2026-04-13",
+                "2026-04-14", "2026-05-01", "2026-05-02", "2026-05-28", "2026-05-30",
+                "2026-06-29", "2026-07-29", "2026-08-26", "2026-08-27", "2026-09-26",
+                "2026-10-25", "2026-11-08", "2026-11-24", "2026-12-23", "2026-12-25"
+            ],
+            "2027": [
+                "2027-01-15", "2027-01-22", "2027-02-04", "2027-02-20", "2027-03-06",
+                "2027-03-10", "2027-03-21", "2027-03-26", "2027-04-13", "2027-04-14",
+                "2027-04-20", "2027-05-01", "2027-05-17", "2027-05-20", "2027-05-21",
+                "2027-06-18", "2027-07-18", "2027-08-15", "2027-08-16", "2027-09-15",
+                "2027-10-15", "2027-10-28", "2027-11-13", "2027-12-13", "2027-12-25"
+            ]
+        };
+
+        // DOM elements
+        const basicSalaryInput = document.getElementById('basicSalary');
+        const otRateDisplay = document.getElementById('otRateDisplay');
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const generateCalendarBtn = document.getElementById('generateCalendar');
+        const calendarSection = document.getElementById('calendarSection');
+        const calendarBody = document.getElementById('calendarBody');
+        const resultsSection = document.getElementById('resultsSection');
+        const totalOtHours = document.getElementById('totalOtHours');
+        const finalOtRate = document.getElementById('finalOtRate');
+        const totalOtPayment = document.getElementById('totalOtPayment');
+        const printResultsBtn = document.getElementById('printResults');
+        const downloadPdfBtn = document.getElementById('downloadPdf');
+        const resetAllBtn = document.getElementById('resetAll');
+        const errorModal = document.getElementById('errorModal');
+        const errorTitle = document.getElementById('errorTitle');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorModalOk = document.getElementById('errorModalOk');
+        const closeErrorModal = document.getElementById('closeErrorModal');
+
+        // Variables
+        let otRate = 0;
+        let attendanceRecords = {};
+        let currentYear, currentMonth;
+
+        // Event listeners
+        basicSalaryInput.addEventListener('input', calculateOtRate);
+        generateCalendarBtn.addEventListener('click', generateCalendar);
+        printResultsBtn.addEventListener('click', printResults);
+        downloadPdfBtn.addEventListener('click', downloadPdf);
+        resetAllBtn.addEventListener('click', resetAll);
+        errorModalOk.addEventListener('click', () => errorModal.classList.add('hidden'));
+        closeErrorModal.addEventListener('click', () => errorModal.classList.add('hidden'));
+
+        // Functions
+        function calculateOtRate() {
+            const basicSalary = parseFloat(basicSalaryInput.value);
+            if (!isNaN(basicSalary) && basicSalary > 0) {
+                otRate = basicSalary / 240;
+                otRateDisplay.textContent = otRate.toFixed(2);
+            } else {
+                otRate = 0;
+                otRateDisplay.textContent = '0.00';
+            }
+        }
+
+        function generateCalendar() {
+            const basicSalary = parseFloat(basicSalaryInput.value);
+            if (isNaN(basicSalary) || basicSalary <= 0) {
+                showError('Invalid Salary', 'Please enter a valid basic salary amount.');
+                return;
+            }
+
+            currentYear = parseInt(yearSelect.value);
+            currentMonth = parseInt(monthSelect.value);
+            
+            // Clear previous calendar
+            calendarBody.innerHTML = '';
+            
+            // Get first and last day of month
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            
+            // Generate calendar rows
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const currentDate = new Date(currentYear, currentMonth, d);
+                const dayOfWeek = currentDate.getDay();
+                const dateStr = formatDate(currentDate);
+                const dayName = getDayName(dayOfWeek);
+                
+                // Check if holiday or weekend
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+                const isHoliday = publicHolidays[currentYear].includes(dateStr);
+                
+                // Create row
+                const row = document.createElement('tr');
+                
+                // Set row class based on day type
+                if (isHoliday) {
+                    row.classList.add('holiday');
+                } else if (isWeekend) {
+                    row.classList.add('weekend');
+                } else {
+                    row.classList.add('working-day');
+                }
+                
+                // Date cell
+                const dateCell = document.createElement('td');
+                dateCell.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                dateCell.textContent = `${d} ${dayName}`;
+                row.appendChild(dateCell);
+                
+                // Day name cell
+                const dayCell = document.createElement('td');
+                dayCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                dayCell.textContent = dayName;
+                row.appendChild(dayCell);
+                
+                // In Time cell
+                const inTimeCell = document.createElement('td');
+                inTimeCell.className = 'px-6 py-4 whitespace-nowrap';
+                const inTimeInput = document.createElement('input');
+                inTimeInput.type = 'time';
+                inTimeInput.className = 'border border-gray-300 rounded-md px-3 py-2';
+                inTimeInput.id = `inTime-${d}`;
+                inTimeInput.dataset.day = d;
+                inTimeCell.appendChild(inTimeInput);
+                row.appendChild(inTimeCell);
+                
+                // Out Time cell
+                const outTimeCell = document.createElement('td');
+                outTimeCell.className = 'px-6 py-4 whitespace-nowrap';
+                const outTimeInput = document.createElement('input');
+                outTimeInput.type = 'time';
+                outTimeInput.className = 'border border-gray-300 rounded-md px-3 py-2';
+                outTimeInput.id = `outTime-${d}`;
+                outTimeInput.dataset.day = d;
+                outTimeCell.appendChild(outTimeInput);
+                row.appendChild(outTimeCell);
+                
+                // OT Hours cell
+                const otHoursCell = document.createElement('td');
+                otHoursCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                otHoursCell.id = `otHours-${d}`;
+                otHoursCell.textContent = '0.00';
+                row.appendChild(otHoursCell);
+                
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium';
+                
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'gradient-btn text-white px-4 py-2 rounded-md font-medium text-sm mr-2';
+                submitBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Submit';
+                submitBtn.dataset.day = d;
+                submitBtn.addEventListener('click', () => submitAttendance(d, isWeekend, isHoliday));
+                actionsCell.appendChild(submitBtn);
+                
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'bg-gray-200 text-gray-800 px-4 py-2 rounded-md font-medium text-sm';
+                clearBtn.innerHTML = '<i class="fas fa-times mr-1"></i> Clear';
+                clearBtn.dataset.day = d;
+                clearBtn.addEventListener('click', () => clearAttendance(d));
+                actionsCell.appendChild(clearBtn);
+                
+                row.appendChild(actionsCell);
+                
+                // Add row to calendar
+                calendarBody.appendChild(row);
+            }
+            
+            // Show calendar and results sections
+            calendarSection.classList.remove('hidden');
+            resultsSection.classList.remove('hidden');
+        }
+
+        function submitAttendance(day, isWeekend, isHoliday) {
+            const inTimeInput = document.getElementById(`inTime-${day}`);
+            const outTimeInput = document.getElementById(`outTime-${day}`);
+            const otHoursCell = document.getElementById(`otHours-${day}`);
+            
+            const inTime = inTimeInput.value;
+            const outTime = outTimeInput.value;
+            
+            // Validate inputs
+            if (!inTime || !outTime) {
+                showError('Missing Information', 'Please enter both In Time and Out Time.');
+                return;
+            }
+            
+            // Parse times
+            const inTimeParts = inTime.split(':');
+            const outTimeParts = outTime.split(':');
+            
+            const inHours = parseInt(inTimeParts[0]);
+            const inMinutes = parseInt(inTimeParts[1]);
+            const outHours = parseInt(outTimeParts[0]);
+            const outMinutes = parseInt(outTimeParts[1]);
+            
+            // Convert to Date objects for easier comparison
+            const currentDate = new Date(currentYear, currentMonth, day);
+            const inDateTime = new Date(currentDate);
+            inDateTime.setHours(inHours, inMinutes);
+            
+            const outDateTime = new Date(currentDate);
+            outDateTime.setHours(outHours, outMinutes);
+            
+            // Validate out time is after in time
+            if (outDateTime <= inDateTime) {
+                showError('Invalid Time', 'Out Time must be after In Time.');
+                return;
+            }
+            
+            // Calculate OT hours based on day type
+            let otHours = 0;
+            
+            if (isWeekend || isHoliday) {
+                // For weekends and holidays, all hours are OT
+                const diffMs = outDateTime - inDateTime;
+                otHours = diffMs / (1000 * 60 * 60); // Convert to hours
+                
+                // Round down to nearest 15 minutes for weekends/holidays
+                otHours = Math.floor(otHours * 4) / 4;
+            } else {
+                // For weekdays, apply OT rules
+                
+                // Check if arrival is after 9:00 AM (invalid)
+                const maxLateThreshold = new Date(currentDate);
+                maxLateThreshold.setHours(9, 0);
+                
+                if (inDateTime > maxLateThreshold) {
+                    showError('Invalid In Time', 'OT cannot be counted if arrival is after 9:00 AM.');
+                    return;
+                }
+                
+                // Normal working hours end at 4:15 PM
+                const workEndTime = new Date(currentDate);
+                workEndTime.setHours(16, 15);
+                
+                // First OT hour is until 5:15 PM
+                const firstOtEnd = new Date(currentDate);
+                firstOtEnd.setHours(17, 15);
+                
+                // Check if late arrival (between 8:31 AM and 9:00 AM)
+                const lateThreshold = new Date(currentDate);
+                lateThreshold.setHours(8, 30);
+                
+                if (inDateTime > lateThreshold) {
+                    // Calculate late minutes
+                    const lateMinutes = (inDateTime - lateThreshold) / (1000 * 60);
+                    
+                    // Late minutes must be covered after 5:15 PM
+                    const requiredOutTime = new Date(firstOtEnd);
+                    requiredOutTime.setMinutes(firstOtEnd.getMinutes() + lateMinutes);
+                    
+                    if (outDateTime < requiredOutTime) {
+                        showError('Insufficient Work Time', `You must work until ${formatTime(requiredOutTime)} to cover your late arrival.`);
+                        return;
+                    }
+                    
+                    // Calculate OT after covering late time from 4:15 PM
+                    const otStartTime = new Date(workEndTime);
+                    otStartTime.setMinutes(otStartTime.getMinutes() + lateMinutes);
+                    
+                    if (outDateTime > otStartTime) {
+                        // First OT hour is until otStartTime + 60 minutes
+                        const firstOtEnd = new Date(otStartTime);
+                        firstOtEnd.setHours(firstOtEnd.getHours() + 1);
+                        
+                        if (outDateTime <= firstOtEnd) {
+                            // Only first OT hour
+                            otHours = 1;
+                        } else {
+                            // First OT hour + additional OT in 15-minute blocks
+                            otHours = 1 + Math.floor((outDateTime - firstOtEnd) / (1000 * 60 * 15)) * 0.25;
+                        }
+                    } else {
+                        // No OT if not covering late time
+                        otHours = 0;
+                    }
+                } else {
+                    // On-time arrival (before or at 8:30 AM)
+                    
+                    if (outDateTime > workEndTime) {
+                        if (outDateTime <= firstOtEnd) {
+                            // Only first OT hour
+                            otHours = (outDateTime - workEndTime) / (1000 * 60 * 60);
+                        } else {
+                            // First OT hour + additional OT in 15-minute blocks
+                            otHours = 1 + Math.floor((outDateTime - firstOtEnd) / (1000 * 60 * 15)) * 0.25;
+                        }
+                    }
+                }
+                
+                // Minimum OT is 1 hour
+                if (otHours > 0 && otHours < 1) {
+                    otHours = 1;
+                }
+                
+                // Round down to nearest 15 minutes (0.25 hours)
+                otHours = Math.floor(otHours * 4) / 4;
+            }
+            
+            // Update display
+            otHoursCell.textContent = otHours.toFixed(2);
+            
+            // Save record
+            const dateStr = formatDate(currentDate);
+            attendanceRecords[dateStr] = {
+                inTime,
+                outTime,
+                otHours,
+                isWeekend,
+                isHoliday
+            };
+            
+            // Update results
+            updateResults();
+        }
+
+        function clearAttendance(day) {
+            document.getElementById(`inTime-${day}`).value = '';
+            document.getElementById(`outTime-${day}`).value = '';
+            document.getElementById(`otHours-${day}`).textContent = '0.00';
+            
+            const currentDate = new Date(currentYear, currentMonth, day);
+            const dateStr = formatDate(currentDate);
+            delete attendanceRecords[dateStr];
+            
+            updateResults();
+        }
+
+        function updateResults() {
+            let totalHours = 0;
+            
+            // Sum all OT hours
+            for (const date in attendanceRecords) {
+                totalHours += attendanceRecords[date].otHours;
+            }
+            
+            // Update display
+            totalOtHours.textContent = totalHours.toFixed(2);
+            finalOtRate.textContent = otRate.toFixed(2);
+            totalOtPayment.textContent = (totalHours * otRate).toFixed(2);
+        }
+
+        function printResults() {
+            window.print();
+        }
+
+        function downloadPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Ministry of Transport - OT Calculation', 105, 20, { align: 'center' });
+            
+            // Add date
+            doc.setFontSize(12);
+            const monthName = monthSelect.options[monthSelect.selectedIndex].text;
+            doc.text(`Month: ${monthName} ${yearSelect.value}`, 14, 30);
+            
+            // Add salary info
+            doc.text(`Basic Salary: LKR ${basicSalaryInput.value}`, 14, 40);
+            doc.text(`OT Rate: LKR ${otRate.toFixed(2)}/hour`, 14, 50);
+            
+            // Add results
+            doc.setFontSize(14);
+            doc.text('OT Calculation Results', 14, 65);
+            
+            doc.setFontSize(12);
+            doc.text(`Total OT Hours: ${totalOtHours.textContent}`, 14, 75);
+            doc.text(`Total OT Payment: LKR ${totalOtPayment.textContent}`, 14, 85);
+            
+            // Add attendance records
+            doc.setFontSize(14);
+            doc.text('Attendance Records', 14, 100);
+            
+            doc.setFontSize(10);
+            let yPos = 110;
+            
+            // Table header
+            doc.text('Date', 14, yPos);
+            doc.text('Day', 50, yPos);
+            doc.text('In Time', 80, yPos);
+            doc.text('Out Time', 110, yPos);
+            doc.text('OT Hours', 140, yPos);
+            doc.text('Type', 170, yPos);
+            yPos += 5;
+            
+            // Draw line
+            doc.line(14, yPos, 190, yPos);
+            yPos += 10;
+            
+            // Table rows
+            for (const date in attendanceRecords) {
+                if (yPos > 280) {
+                    doc.addPage();
+                    yPos = 20;
+                    
+                    // Table header on new page
+                    doc.text('Date', 14, yPos);
+                    doc.text('Day', 50, yPos);
+                    doc.text('In Time', 80, yPos);
+                    doc.text('Out Time', 110, yPos);
+                    doc.text('OT Hours', 140, yPos);
+                    doc.text('Type', 170, yPos);
+                    yPos += 5;
+                    
+                    // Draw line
+                    doc.line(14, yPos, 190, yPos);
+                    yPos += 10;
+                }
+                
+                const record = attendanceRecords[date];
+                const dateObj = new Date(date);
+                const dayName = getDayName(dateObj.getDay());
+                
+                doc.text(formatDateForDisplay(dateObj), 14, yPos);
+                doc.text(dayName, 50, yPos);
+                doc.text(record.inTime, 80, yPos);
+                doc.text(record.outTime, 110, yPos);
+                doc.text(record.otHours.toFixed(2), 140, yPos);
+                
+                let dayType = 'Working Day';
+                if (record.isHoliday) dayType = 'Public Holiday';
+                else if (record.isWeekend) dayType = 'Weekend';
+                
+                doc.text(dayType, 170, yPos);
+                
+                yPos += 10;
+            }
+            
+            // Save PDF
+            doc.save(`OT_Calculation_${monthSelect.options[monthSelect.selectedIndex].text}_${yearSelect.value}.pdf`);
+        }
+
+        function resetAll() {
+            basicSalaryInput.value = '';
+            otRateDisplay.textContent = '0.00';
+            otRate = 0;
+            attendanceRecords = {};
+            
+            // Clear calendar if generated
+            if (calendarBody) {
+                calendarBody.innerHTML = '';
+            }
+            
+            // Hide sections
+            calendarSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            
+            // Reset results display
+            totalOtHours.textContent = '0.00';
+            finalOtRate.textContent = '0.00';
+            totalOtPayment.textContent = '0.00';
+        }
+
+        function showError(title, message) {
+            errorTitle.textContent = title;
+            errorMessage.innerHTML = message + '<br><br><span class="text-sm text-gray-600">Please correct the entry and try again.</span>';
+            errorModal.classList.remove('hidden');
+        }
+
+        // Helper functions
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateForDisplay(date) {
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            return `${day}/${month}`;
+        }
+
+        function formatTime(date) {
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12;
+            return `${formattedHours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+        }
+
+        function getDayName(dayIndex) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[dayIndex];
+        }
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=pavidimuthu/ministry-of-transport-overtime-calculation-system" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
